@@ -1,65 +1,134 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+
+export default function HomePage() {
+  const [text, setText] = useState("");
+  const [response, setResponse] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<{ text: string; reply: string }[]>([]);
+
+  // Load history from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("checkins");
+    if (saved) setHistory(JSON.parse(saved));
+  }, []);
+
+  const handleCheckIn = async () => {
+    if (!text.trim()) return;
+
+    setLoading(true);
+    setResponse("");
+
+    try {
+      const res = await fetch("http://localhost:3001/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await res.json();
+      const reply = res.ok ? data.reply : "Error: " + (data.error || "Something went wrong");
+
+      setResponse(reply);
+
+      if (res.ok) {
+        const newHistory = [{ text, reply }, ...history];
+        setHistory(newHistory);
+        localStorage.setItem("checkins", JSON.stringify(newHistory));
+      }
+
+      setText("");
+    } catch (err) {
+      console.error(err);
+      setResponse("Error connecting to backend");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMoodColor = (reply: string) => {
+    if (reply.includes("Low")) return "bg-red-100 border-red-400 text-red-800";
+    if (reply.includes("Medium")) return "bg-yellow-100 border-yellow-400 text-yellow-800";
+    if (reply.includes("Good")) return "bg-green-100 border-green-400 text-green-800";
+    return "bg-gray-100 border-gray-300 text-gray-800";
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-100 to-pink-100">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-purple-600 to-pink-500 text-white py-6 shadow-lg">
+        <h1 className="text-3xl font-bold text-center tracking-wide">🌸 Mental Health Check-In</h1>
+      </header>
+
+      {/* Hero */}
+      <section className="text-center py-12 px-4 bg-gradient-to-r from-purple-50 to-pink-50">
+        <h2 className="text-4xl font-bold text-purple-700 mb-3">Check in on your mental health</h2>
+        <p className="text-gray-700 max-w-2xl mx-auto text-lg">
+          Share how you feel today and get a supportive AI response along with a simple self-care suggestion.
+        </p>
+      </section>
+
+      {/* Main content */}
+      <main className="flex flex-col md:flex-row justify-center gap-8 px-4 py-12">
+        {/* Check-in card */}
+        <div className="bg-white shadow-2xl rounded-2xl p-6 w-full md:w-96 flex flex-col hover:scale-[1.02] transition-transform duration-300">
+          <h3 className="text-xl font-semibold mb-4 text-purple-700">📝 Your Check-In</h3>
+          <textarea
+            rows={5}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="How are you feeling today?"
+            className="w-full p-3 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 mb-4 resize-none"
+          />
+          <button
+            onClick={handleCheckIn}
+            disabled={loading}
+            className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {loading ? "Checking in..." : "Check In"}
+          </button>
+
+          {/* AI Response */}
+          {response && (
+            <div className={`mt-6 p-4 border-l-4 rounded-lg ${getMoodColor(response)} animate-fade-in`}>
+              <p className="font-medium">🤖 AI Response:</p>
+              <p className="whitespace-pre-line">{response}</p>
+            </div>
+          )}
         </div>
+
+        {/* History panel */}
+        {history.length > 0 && (
+          <div className="bg-white shadow-2xl rounded-2xl p-6 w-full md:w-96 max-h-[600px] overflow-y-auto">
+            <h3 className="text-xl font-semibold mb-4 text-purple-700">🕒 Previous Check-Ins</h3>
+            {history.map((h, idx) => (
+              <div
+                key={idx}
+                className={`mb-3 p-3 border-l-4 rounded-lg ${getMoodColor(h.reply)} hover:shadow-md transition-shadow duration-200`}
+              >
+                <p className="font-medium">You: {h.text}</p>
+                <p className="mt-1 whitespace-pre-line">{h.reply}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="bg-purple-50 text-center py-6 mt-auto text-purple-800">
+        <p>© 2026 Mental Health Check-In 🌸 Built with care</p>
+      </footer>
+
+      <style jsx>{`
+        .animate-fade-in {
+          animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
